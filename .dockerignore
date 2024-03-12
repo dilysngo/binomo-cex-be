@@ -1,0 +1,15 @@
+deploy/*quark*
+deploy/pgdata
+deploy/electrum
+deploy/tmp
+.idea
+.mypy_cache
+cleanup_backups
+backup_trash
+static
+staticfiles
+logs
+venv
+env
+.venv
+deploy

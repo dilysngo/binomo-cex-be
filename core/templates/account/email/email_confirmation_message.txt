@@ -1,0 +1,15 @@
+{% load account %}{% user_display user as user_display %}{% load i18n %}
+{% autoescape off %}
+{% blocktrans with site_name=current_site.name site_domain=current_site.domain %}
+
+
+Hello, {{ user_display }}!
+
+You have requested adding an email address to your account on {{ site_name }}.
+Copy and enter the code to confirm the action:
+
+{{key}}
+
+If you have not performed this action, immediately write to support.
+{% endblocktrans %}
+{% endautoescape %}

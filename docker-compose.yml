@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  bitnano:
+    container_name: bitnano
+    image: bitnano:latest
+    restart: always
+    build: .
+    # command: gunicorn  exchange.wsgi:application   -b 0.0.0.0:8080 -w 2 --access-logfile - --error-logfile -
+    # command: gunicorn exchange.wsgi:application --bind 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+      - redis
+  db:
+    image: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      # - "POSTGRES_HOST_AUTH_METHOD=trust"
+      - POSTGRES_DB=bitnano
+      - POSTGRES_USER=bitnano
+      - POSTGRES_PASSWORD=password
+
+  redis:
+    container_name: redis
+    restart: always
+    image: redis:latest
+    volumes:
+      - ./redis_data:/data
+    entrypoint: redis-server
+
+volumes:
+  postgres_data:
