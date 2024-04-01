@@ -1,12 +1,10 @@
 version: '3.8'
 services:
-  bitnano:
-    container_name: bitnano
-    image: bitnano:latest
+  opencex:
+    container_name: opencex
+    image: opencex:latest
     restart: always
     build: .
-    # command: gunicorn  exchange.wsgi:application   -b 0.0.0.0:8080 -w 2 --access-logfile - --error-logfile -
-    # command: gunicorn exchange.wsgi:application --bind 0.0.0.0:8000
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/code
@@ -15,6 +13,59 @@ services:
     depends_on:
       - db
       - redis
+
+  # opencex-cel:
+  #   container_name: opencex-cel
+  #   image: opencex:latest
+  #   command: celery -A exchange worker -l info -n general -B -s /tmp/cebeat.db -X eth_new_blocks,eth_deposits,eth_payouts,eth_check_balances,eth_accumulations,eth_tokens_accumulations,eth_send_gas,bnb_new_blocks,bnb_deposits,bnb_payouts,bnb_check_balances,bnb_accumulations,bnb_tokens_accumulations,bnb_send_gas
+  #   restart: always
+  #   volumes:
+  #     - .:/code
+  #   depends_on:
+  #     - db
+  #     - redis
+  #     - rabbitmq
+  #     - opencex
+
+  # opencex-stack:
+  #   container_name: opencex-stack
+  #   image: opencex:latest
+  #   command: python bin/stack.py
+  #   restart: always
+  #   volumes:
+  #     - .:/code
+  #   depends_on:
+  #     - db
+  #     - redis
+  #     - rabbitmq
+  #     - opencex
+
+  # opencex-bnb-blocks:
+  #   container_name: opencex-bnb-blocks
+  #   image: opencex:latest
+  #   command: bash -c "celery -A exchange worker -l info -n bnb_new_blocks -Q bnb_new_blocks -c 1 "
+  #   restart: always
+  #   volumes:
+  #     - .:/code
+  #   depends_on:
+  #     - db
+  #     - redis
+  #     - rabbitmq
+  #     - opencex
+
+  # opencex-eth-blocks:
+  #   container_name: opencex-eth-blocks
+  #   image: opencex:latest
+  #   command: bash -c "celery -A exchange worker -l info -n eth_new_blocks -Q eth_new_blocks -c 1 "
+  #   restart: always
+  #   volumes:
+  #     - .:/code
+  #   depends_on:
+  #     - db
+  #     - redis
+  #     - rabbitmq
+  #     - opencex
+
   db:
     image: postgres
     ports:
@@ -23,8 +74,8 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     environment:
       # - "POSTGRES_HOST_AUTH_METHOD=trust"
-      - POSTGRES_DB=bitnano
-      - POSTGRES_USER=bitnano
+      - POSTGRES_DB=opencex
+      - POSTGRES_USER=opencex
       - POSTGRES_PASSWORD=password
 
   redis:
@@ -34,6 +85,22 @@ services:
     volumes:
       - ./redis_data:/data
     entrypoint: redis-server
+
+  # rabbitmq:
+  #   hostname: rabbitmq
+  #   container_name: rabbitmq
+  #   restart: always
+  #   image: rabbitmq:3.9.22-management
+  #   volumes:
+  #     - ./rabbitmq_data/:/var/lib/rabbitmq/
+  #     - ./rabbitmq_logs/:/var/log/rabbitmq/
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: opencex
+  #     RABBITMQ_DEFAULT_PASS: NSc
+  #     RABBITMQ_DEFAULT_VHOST: /
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
 
 volumes:
   postgres_data:

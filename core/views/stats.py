@@ -41,6 +41,7 @@ class PairTradeChartData:
         self.period = period
         self.pair = Pair.get(pair)
         self.chart_tool = self.make_charttool()
+        print("self.pair", Pair.get(pair))
 
     def make_charttool(self):
         return ChartTool(self.start, self.stop, self.period)
@@ -55,11 +56,13 @@ class PairTradeChartData:
 
     def get(self):
         data = self.chart_data_map()
-
+        print("chart_data_map", data)
+        
         records = self.chart_tool.populate_with_data(
             data,
             empty_record_maker=self.empty_record,
         )
+        # print("records", records)
 
         return list(map(self.format_item, records))
 
@@ -162,8 +165,11 @@ class PairTradeChartDataWithPreAggregattion(PairTradeChartData):
 
     def chart_data_map(self):
         week_ago = now() - relativedelta(days=settings.STATS_CLEANUP_MINUTE_INTERVAL_DAYS_AGO)
+        print("week_ago", week_ago)
         before_data_qs = None
 
+        print("self.start", self.start)
+        print("self.period", self.period)
         if self.period == 'minute' and self.start < week_ago:
             before_data_qs = self.get_cached_qs('hour', stop=week_ago)
             cached_qs = self.get_cached_qs(start=week_ago)
@@ -171,8 +177,12 @@ class PairTradeChartDataWithPreAggregattion(PairTradeChartData):
             cached_qs = self.get_cached_qs()
 
         qs = self.queryset()  # fresh only data
+        print("qs", qs)
         data = self.chart_tool.map_qs(cached_qs, 'ts')
+        print("data1", data)
         data.update(self.chart_tool.map_qs(qs, 'ts'))
+        print("data2", data)
+        print("before_data_qs", before_data_qs)
 
         if before_data_qs:
             data.update(self.chart_tool.map_qs(before_data_qs, 'ts'))
@@ -216,7 +226,9 @@ class StatsView(APIView):
     )
     def post(self, request, **kwargs):
         serializer = StatsSerializer(data=request.data)
+        print("serializer", serializer)
         serializer.is_valid(raise_exception=True)
+
         spec = serializer.data
 
         start = dt_from_js(spec['start_ts'])
@@ -224,15 +236,17 @@ class StatsView(APIView):
 
         if stop > now():
             stop = now()
-
+            
         st = self.CHART_DATA_SOURCE(
             start=start,
             stop=stop,
             period=spec['frame'],
             pair=spec['pair']
         )
+        print("st", st)
 
         records = st.get()
+        # print("records", records)
 
         response = {
             'records': records,
@@ -241,6 +255,7 @@ class StatsView(APIView):
             'frame': spec['frame'],
             'last_record_dt': None if not records else str((records[-1][0]))
         }
+
         return Response(response)
 
 

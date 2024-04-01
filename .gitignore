@@ -38,3 +38,6 @@ env
 postgresql_data
 redis_data
 deploy
+
+rabbitmq_data
+rabbitmq_logs

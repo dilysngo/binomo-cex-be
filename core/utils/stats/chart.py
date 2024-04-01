@@ -54,15 +54,20 @@ class ChartTool:
 
     def populate_with_data(self, data, empty_record_maker, result_list=None, field='ts'):
         result_list = result_list if isinstance(result_list, list) else []
+        print("result_list", result_list)
+        # print("self.timeline", self.timeline)
 
         for ts in self.timeline:
             if ts not in data:
                 record = empty_record_maker(ts, result_list=result_list)
                 record[self.EMPTY_KEY] = True
+                # print("record", record)
             else:
                 record = data[ts]
 
             result_list.append(record)
+            
+        
         return result_list
 
     @classmethod

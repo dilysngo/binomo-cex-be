@@ -1,0 +1,189 @@
+version: '3.8'
+services:
+  bitnano:
+    container_name: bitnano
+    image: bitnano:latest
+    restart: always
+    build: .
+    # command: gunicorn  exchange.wsgi:application   -b 0.0.0.0:8080 -w 2 --access-logfile - --error-logfile -
+    # command: gunicorn exchange.wsgi:application --bind 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+
+  bitnano-wss:
+    container_name: bitnano-wss
+    image: bitnano:latest
+    command: daphne -b 0.0.0.0 exchange.asgi:application  --ping-interval 600 --ping-timeout 600
+    restart: always
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+      - bitnano
+
+  bitnano-cel:
+    container_name: bitnano-cel
+    image: bitnano:latest
+    command: celery -A exchange worker -l info -n general -B -s /tmp/cebeat.db -X btc,eth_new_blocks,eth_deposits,eth_payouts,eth_check_balances,eth_accumulations,eth_tokens_accumulations,eth_send_gas,bnb_new_blocks,bnb_deposits,bnb_payouts,bnb_check_balances,bnb_accumulations,bnb_tokens_accumulations,bnb_send_gas,trx_new_blocks,trx_deposits,trx_payouts,trx_check_balances,trx_accumulations,trx_tokens_accumulations,matic_new_blocks,matic_deposits,matic_payouts,matic_check_balances,matic_accumulations,matic_tokens_accumulations
+    restart: always
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+      - bitnano
+
+  bitnano-stack:
+    container_name: bitnano-stack
+    image: bitnano:latest
+    command: python bin/stack.py
+    restart: always
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+      - bitnano
+
+  bitnano-eth-blocks:
+    container_name: bitnano-eth-blocks
+    image: bitnano:latest
+    command: bash -c "celery -A exchange worker -l info -n eth_new_blocks -Q eth_new_blocks -c 1 "
+    restart: always
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+      - bitnano
+
+  bitnano-deposits:
+    container_name: bitnano-deposits
+    image: bitnano:latest
+    command: bash -c "celery -A exchange worker -l info -n deposits -Q trx_deposits,bnb_deposits,eth_deposits,matic_deposits -c 1 "
+    restart: always
+    volumes:
+      - .:/code
+
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+      - bitnano
+
+  bitnano-payouts:
+    container_name: bitnano-payouts
+    image: bitnano:latest
+    command: bash -c "celery -A exchange worker -l info -n payouts -Q trx_payouts,eth_payouts,bnb_payouts,matic_payouts -c 1 "
+    restart: always
+    volumes:
+      - .:/code
+
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+      - bitnano
+
+  bitnano-balances:
+    container_name: bitnano-balances
+    image: bitnano:latest
+    command: bash -c "celery -A exchange worker -l info -n check_balances -Q trx_check_balances,bnb_check_balances,eth_check_balances,matic_check_balances -c 1 "
+    restart: always
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+      - bitnano
+
+  bitnano-coin-accumulations:
+    container_name: bitnano-coin-accumulations
+    image: bitnano:latest
+    command: bash -c "celery -A exchange worker -l info -n coin_accumulations -Q trx_accumulations,bnb_accumulations,eth_accumulations,matic_accumulations -c 1 "
+    restart: always
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+      - bitnano
+
+  bitnano-token-accumulations:
+    container_name: bitnano-token-accumulations
+    image: bitnano:latest
+    command: bash -c "celery -A exchange worker -l info -n tokens_accumulations -Q trx_tokens_accumulations,bnb_tokens_accumulations,eth_tokens_accumulations,matic_tokens_accumulations -c 1 "
+    restart: always
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+      - bitnano
+
+  bitnano-gas:
+    container_name: bitnano-gas
+    image: bitnano:latest
+    command: bash -c "celery -A exchange worker -l info -n send_gas -Q trx_send_gas,bnb_send_gas,eth_send_gas,matic_send_gas -c 1 "
+    restart: always
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+      - bitnano
+
+  db:
+    image: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      # - "POSTGRES_HOST_AUTH_METHOD=trust"
+      - POSTGRES_DB=bitnano
+      - POSTGRES_USER=bitnano
+      - POSTGRES_PASSWORD=password
+
+  redis:
+    container_name: redis
+    restart: always
+    image: redis:latest
+    volumes:
+      - ./redis_data:/data
+    entrypoint: redis-server
+
+  rabbitmq:
+    hostname: rabbitmq
+    container_name: rabbitmq
+    restart: always
+    image: rabbitmq:3.9.22-management
+    volumes:
+      - ./rabbitmq_data/:/var/lib/rabbitmq/
+      - ./rabbitmq_logs/:/var/log/rabbitmq/
+    environment:
+      RABBITMQ_DEFAULT_USER: bitnano
+      RABBITMQ_DEFAULT_PASS: h
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+        - "5672:5672"
+        - "15672:15672"
+
+volumes:
+  postgres_data:

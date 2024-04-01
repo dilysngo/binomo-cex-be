@@ -11,8 +11,8 @@ docker compose exec db psql --username=binomo --dbname=binomo
 
 * require docker desktop
 docker compose up -d
-docker exec -it backend-dev-1 python manage.py migrate
-docker exec -it backend-dev-1 python manage.py collectstatic
+docker exec -it bitnano python manage.py migrate
+docker exec -it bitnano python manage.py collectstatic
 docker compose up 
 
 docker exec -it bitnano python wizard.py
